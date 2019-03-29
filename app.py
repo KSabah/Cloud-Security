@@ -8,6 +8,7 @@ from Crypto.PublicKey import RSA
 from cryptography.fernet import Fernet
 dbx = dropbox.Dropbox(TOKEN)
 
+#Pulling keys from file if it exists or creating if not
 if ((os.path.isfile("private_key.pem")) and (os.path.isfile("public_key.pem")) and (os.path.isfile("key.txt"))):
     fd1 = open("private_key.pem", "r")
     private_key = fd1.read() 
@@ -33,6 +34,7 @@ else:
     fd.write(public_key)
     fd.close()
 
+#Adding members to group
 add_to_group = raw_input("Do you want to add a member? ")
 add_to_group = add_to_group.lower()
 if add_to_group == "yes":
@@ -47,6 +49,12 @@ if add_to_group == "yes":
                 members.close()
                 b = 1
         if b == 0:
+            for entry in dbx.files_list_folder("").entries:
+                if entry.name == 'group':
+                    member_selector = dropbox.sharing.MemberSelector.email(email)
+                    add_member =  dropbox.sharing.AddMember(member_selector)
+                    members = [add_member] 
+                    res = dbx.sharing_add_folder_member(entry.shared_folder_id, members)
             f = open("memberlist.txt", "a")
             f.write(email+"\n")
             f.close()
@@ -58,10 +66,28 @@ if add_to_group == "yes":
         members.close()
         print("Thanks, they've been added to your group.")
 
+#Removing from group
+remove = raw_input("Do you want to remove a member? ")
+remove = remove.lower()
+if remove == "yes":
+    if(os.path.isfile("memberlist.txt")):
+        email = raw_input("Please enter their email: ")
+        b = 0
+        with open("memberlist.txt", "r") as f:
+            lines = f.readlines()
+        with open("memberlist.txt", "w") as f:
+            for line in lines:
+                if line.strip("\n") != email:
+                    f.write(line)
+        print("The member you have requested has been successfully removed.")
+    else:
+        print("You have no group members to remove.")
+
+#Uploading file to group if it exists and creating it otherwise
 upload_file = raw_input("What is the name of the file you'd like to upload? ")
 if (os.path.isfile(upload_file)):
+    folders = dbx.files_list_folder("")
     with open(upload_file, "rb") as f:
-        folders = dbx.files_list_folder("")
         data = f.read()
         for memberdata in data:
             fernet = Fernet(key)
