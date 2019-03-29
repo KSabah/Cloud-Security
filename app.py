@@ -79,6 +79,10 @@ if remove == "yes":
             for line in lines:
                 if line.strip("\n") != email:
                     f.write(line)
+        for entry in dbx.files_list_folder("").entries:
+                if entry.name == 'group':
+                    member_selector = dropbox.sharing.MemberSelector.email(email)
+                    res = dbx.sharing_remove_folder_member(entry.shared_folder_id, member_selector, leave_a_copy = False)
         print("The member you have requested has been successfully removed.")
     else:
         print("You have no group members to remove.")
