@@ -38,10 +38,11 @@ else:
 add_to_group = raw_input("Do you want to add a member? ")
 add_to_group = add_to_group.lower()
 if add_to_group == "yes":
-    if(os.path.isfile("memberlist.txt")):
+    group_choice = raw_input("What group would you like to add a new member to? ")
+    if(os.path.isfile(group_choice+".txt")):
         email = raw_input("Please enter a valid email: ")
         b = 0
-        with open('memberlist.txt', 'r') as members:
+        with open(group_choice+".txt", 'r') as members:
             emails = [line.strip() for line in members]
         for i in emails:
             if i == email:
@@ -50,17 +51,17 @@ if add_to_group == "yes":
                 b = 1
         if b == 0:
             for entry in dbx.files_list_folder("").entries:
-                if entry.name == 'group':
+                if entry.name == group_choice:
                     member_selector = dropbox.sharing.MemberSelector.email(email)
                     add_member =  dropbox.sharing.AddMember(member_selector)
                     members = [add_member] 
                     res = dbx.sharing_add_folder_member(entry.shared_folder_id, members)
-            f = open("memberlist.txt", "a")
+            f = open(group_choice+".txt", "a")
             f.write(email+"\n")
             f.close()
             print("Thanks, they've been added to your group.")
     else:
-        members = open("memberlist.txt", "wb")
+        members = open(group_choice+".txt", "wb")
         email = raw_input("Please enter a valid email ")
         members.write(email+"\n")
         members.close()
@@ -70,17 +71,18 @@ if add_to_group == "yes":
 remove = raw_input("Do you want to remove a member? ")
 remove = remove.lower()
 if remove == "yes":
-    if(os.path.isfile("memberlist.txt")):
+    group_choice = raw_input("Which group would you like to remove a member from? ")
+    if(os.path.isfile(group_choice+".txt")):
         email = raw_input("Please enter their email: ")
         b = 0
-        with open("memberlist.txt", "r") as f:
+        with open(group_choice+".txt", "r") as f:
             lines = f.readlines()
-        with open("memberlist.txt", "w") as f:
+        with open(group_choice+".txt", "w") as f:
             for line in lines:
                 if line.strip("\n") != email:
                     f.write(line)
         for entry in dbx.files_list_folder("").entries:
-                if entry.name == 'group':
+                if entry.name == group_choice:
                     member_selector = dropbox.sharing.MemberSelector.email(email)
                     res = dbx.sharing_remove_folder_member(entry.shared_folder_id, member_selector, leave_a_copy = False)
         print("The member you have requested has been successfully removed.")
@@ -88,6 +90,7 @@ if remove == "yes":
         print("You have no group members to remove.")
 
 #Uploading file to group if it exists and creating it otherwise
+group_name = raw_input("What group do you want to upload to? ")
 upload_file = raw_input("What is the name of the file you'd like to upload? ")
 if (os.path.isfile(upload_file)):
     folders = dbx.files_list_folder("")
@@ -98,14 +101,14 @@ if (os.path.isfile(upload_file)):
             enc_data = fernet.encrypt(data)
     b = 0
     for f in folders.entries:
-        if f.name == "group":
-            dbx.files_upload(enc_data, '/group/' + upload_file)
+        if f.name == group_name:
+            dbx.files_upload(enc_data, '/'+group_name+'/' + upload_file)
             print("File uploaded")
             b = 1
     if b == 0:
-        launch = dbx.sharing_share_folder('/group/')
+        launch = dbx.sharing_share_folder('/'+group_name+'/')
         meta_data = launch.get_complete()
-        with open('memberlist.txt', 'r') as f:
+        with open(group_name+".txt", 'r') as f:
             emails = [line.strip() for line in f]
         for i in emails:
             member_select = dropbox.sharing.MemberSelector.email(i)
@@ -113,7 +116,7 @@ if (os.path.isfile(upload_file)):
             add_member = dropbox.sharing.AddMember(member_select, access_level)
             dbx.sharing_add_folder_member(meta_data.shared_folder_id, [add_member])
         print('Folder created for group.')
-        dbx.files_upload(enc_data, '/group/' + upload_file)
+        dbx.files_upload(enc_data, '/'+group_name+'/' + upload_file)
         print("File uploaded")
         b = 1
 else: print("Sorry, I cannot find that file. Make sure you typed in the path, name, and extension correctly!")
