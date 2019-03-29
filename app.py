@@ -8,31 +8,7 @@ from Crypto.PublicKey import RSA
 from cryptography.fernet import Fernet
 dbx = dropbox.Dropbox(TOKEN)
 
-#Pulling keys from file if it exists or creating if not
-if ((os.path.isfile("private_key.pem")) and (os.path.isfile("public_key.pem")) and (os.path.isfile("key.txt"))):
-    fd1 = open("private_key.pem", "r")
-    private_key = fd1.read() 
-    fd1.close()
-    fd2 = open("public_key.pem", "r")
-    public_key = fd2.read() 
-    fd2.close()
-    fd3 = open("key.txt", "r")
-    key = fd3.read() 
-    fd3.close()
-else:
-    key = Fernet.generate_key()
-    fd = open("key.txt", "wb")
-    fd.write(key) 
-    fd.close()
-    new_key = RSA.generate(4096, e=65537)
-    private_key = new_key.exportKey("PEM")
-    public_key = new_key.publickey().exportKey("PEM")
-    fd = open("private_key.pem", "wb")
-    fd.write(private_key)
-    fd.close()
-    fd = open("public_key.pem", "wb")
-    fd.write(public_key)
-    fd.close()
+   
 
 #Adding members to group
 add_to_group = raw_input("Do you want to add a member? ")
@@ -40,8 +16,19 @@ add_to_group = add_to_group.lower()
 if add_to_group == "yes":
     group_choice = raw_input("What group would you like to add a new member to? ")
     if(os.path.isfile(group_choice+".txt")):
-        email = raw_input("Please enter a valid email: ")
-        b = 0
+        if ((os.path.isfile(group_choice+"private_key.pem")) and (os.path.isfile(group_choice+"public_key.pem")) and (os.path.isfile(group_choice+"key.txt"))):
+            fd1 = open(group_choice+"private_key.pem", "r")
+            private_key = fd1.read() 
+            fd1.close()
+            fd2 = open(group_choice+"public_key.pem", "r")
+            public_key = fd2.read() 
+            fd2.close()
+            fd3 = open(group_choice+"key.txt", "r")
+            key = fd3.read() 
+            fd3.close()
+            email = raw_input("Please enter a valid email: ")
+            b = 0
+        else: print("Could not find group keys")
         with open(group_choice+".txt", 'r') as members:
             emails = [line.strip() for line in members]
         for i in emails:
@@ -61,6 +48,19 @@ if add_to_group == "yes":
             f.close()
             print("Thanks, they've been added to your group.")
     else:
+        key = Fernet.generate_key()
+        fd = open(group_choice+"key.txt", "wb")
+        fd.write(key) 
+        fd.close()
+        new_key = RSA.generate(4096, e=65537)
+        private_key = new_key.exportKey("PEM")
+        public_key = new_key.publickey().exportKey("PEM")
+        fd = open(group_choice+"private_key.pem", "wb")
+        fd.write(private_key)
+        fd.close()
+        fd = open(group_choice+"public_key.pem", "wb")
+        fd.write(public_key)
+        fd.close()
         members = open(group_choice+".txt", "wb")
         email = raw_input("Please enter a valid email ")
         members.write(email+"\n")
@@ -74,7 +74,6 @@ if remove == "yes":
     group_choice = raw_input("Which group would you like to remove a member from? ")
     if(os.path.isfile(group_choice+".txt")):
         email = raw_input("Please enter their email: ")
-        b = 0
         with open(group_choice+".txt", "r") as f:
             lines = f.readlines()
         with open(group_choice+".txt", "w") as f:
