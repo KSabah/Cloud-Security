@@ -37,16 +37,26 @@ add_to_group = raw_input("Do you want to add a member? ")
 add_to_group = add_to_group.lower()
 if add_to_group == "yes":
     if(os.path.isfile("memberlist.txt")):
-        f = open("memberlist.txt", "a")
-        email = raw_input("Please enter a valid email ")
-        f.write(email+"\n")
-        f.close()
-        print("Thanks, they've been added to your group.")
+        email = raw_input("Please enter a valid email: ")
+        b = 0
+        with open('memberlist.txt', 'r') as members:
+            emails = [line.strip() for line in members]
+        for i in emails:
+            if i == email:
+                print("This person is already in your group")
+                members.close()
+                b = 1
+        if b == 0:
+            f = open("memberlist.txt", "a")
+            f.write(email+"\n")
+            f.close()
+            print("Thanks, they've been added to your group.")
     else:
         members = open("memberlist.txt", "wb")
         email = raw_input("Please enter a valid email ")
-        members.write(email)
+        members.write(email+"\n")
         members.close()
+        print("Thanks, they've been added to your group.")
 
 upload_file = raw_input("What is the name of the file you'd like to upload? ")
 if (os.path.isfile(upload_file)):
@@ -56,13 +66,13 @@ if (os.path.isfile(upload_file)):
         for memberdata in data:
             fernet = Fernet(key)
             enc_data = fernet.encrypt(data)
-    g = 0
+    b = 0
     for f in folders.entries:
         if f.name == "group":
             dbx.files_upload(enc_data, '/group/' + upload_file)
             print("File uploaded")
-            g = 1
-    if g == 0:
+            b = 1
+    if b == 0:
         launch = dbx.sharing_share_folder('/group/')
         meta_data = launch.get_complete()
         with open('memberlist.txt', 'r') as f:
@@ -75,6 +85,6 @@ if (os.path.isfile(upload_file)):
         print('Folder created for group.')
         dbx.files_upload(enc_data, '/group/' + upload_file)
         print("File uploaded")
-        g = 1
+        b = 1
 else: print("Sorry, I cannot find that file. Make sure you typed in the path, name, and extension correctly!")
 
