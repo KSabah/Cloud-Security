@@ -6,9 +6,8 @@ import cryptography
 from Token import TOKEN
 from Crypto.PublicKey import RSA
 from cryptography.fernet import Fernet
+from Crypto.Cipher import PKCS1_OAEP
 dbx = dropbox.Dropbox(TOKEN)
-
-   
 
 #Adding members to group
 add_to_group = raw_input("Do you want to add a member? ")
@@ -42,7 +41,7 @@ if add_to_group == "yes":
                     member_selector = dropbox.sharing.MemberSelector.email(email)
                     add_member =  dropbox.sharing.AddMember(member_selector)
                     members = [add_member] 
-                    res = dbx.sharing_add_folder_member(entry.shared_folder_id, members)
+                    res = dbx.sharing_add_folder_member(entry.shared_folder_id, members,)
             f = open(group_choice+".txt", "a")
             f.write(email+"\n")
             f.close()
@@ -92,13 +91,14 @@ if remove == "yes":
 group_name = raw_input("What group do you want to upload to? ")
 upload_file = raw_input("What is the name of the file you'd like to upload? ")
 if (os.path.isfile(upload_file)):
-    folders = dbx.files_list_folder("")
     with open(upload_file, "rb") as f:
         data = f.read()
         for memberdata in data:
             fernet = Fernet(key)
             enc_data = fernet.encrypt(data)
+    f.close()
     b = 0
+    folders = dbx.files_list_folder("")
     for f in folders.entries:
         if f.name == group_name:
             dbx.files_upload(enc_data, '/'+group_name+'/' + upload_file)
@@ -107,6 +107,14 @@ if (os.path.isfile(upload_file)):
     if b == 0:
         launch = dbx.sharing_share_folder('/'+group_name+'/')
         meta_data = launch.get_complete()
+        rsa_key = RSA.importKey(public_key)
+        rsa_key = PKCS1_OAEP.new(rsa_key)
+        encrypted = rsa_key.encrypt(key)
+        fd = open(group_choice+"encrypted_key.txt", "wb")
+        fd.write(encrypted)
+        fd.close()
+        with open(group_choice+"key.txt", "rb") as f:
+            data = f.read()
         with open(group_name+".txt", 'r') as f:
             emails = [line.strip() for line in f]
         for i in emails:
@@ -116,6 +124,7 @@ if (os.path.isfile(upload_file)):
             dbx.sharing_add_folder_member(meta_data.shared_folder_id, [add_member])
         print('Folder created for group.')
         dbx.files_upload(enc_data, '/'+group_name+'/' + upload_file)
+        dbx.files_upload(encrypted, '/'+group_name+'/' + group_choice+"encrypted_key.txt")
         print("File uploaded")
         b = 1
 else: print("Sorry, I cannot find that file. Make sure you typed in the path, name, and extension correctly!")
