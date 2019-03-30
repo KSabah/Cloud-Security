@@ -16,18 +16,8 @@ if add_to_group == "yes":
     group_choice = raw_input("What group would you like to add a new member to? ")
     if(os.path.isfile(group_choice+".txt")):
         if ((os.path.isfile(group_choice+"private_key.pem")) and (os.path.isfile(group_choice+"public_key.pem")) and (os.path.isfile(group_choice+"key.txt"))):
-            fd1 = open(group_choice+"private_key.pem", "r")
-            private_key = fd1.read() 
-            fd1.close()
-            fd2 = open(group_choice+"public_key.pem", "r")
-            public_key = fd2.read() 
-            fd2.close()
-            fd3 = open(group_choice+"key.txt", "r")
-            key = fd3.read() 
-            fd3.close()
             email = raw_input("Please enter a valid email: ")
             b = 0
-        else: print("Could not find group keys")
         with open(group_choice+".txt", 'r') as members:
             emails = [line.strip() for line in members]
         for i in emails:
@@ -91,6 +81,12 @@ if remove == "yes":
 group_name = raw_input("What group do you want to upload to? ")
 upload_file = raw_input("What is the name of the file you'd like to upload? ")
 if (os.path.isfile(upload_file)):
+    fd2 = open(group_name+"public_key.pem", "r")
+    public_key = fd2.read() 
+    fd2.close()
+    fd3 = open(group_name+"key.txt", "r")
+    key = fd3.read() 
+    fd3.close()
     with open(upload_file, "rb") as f:
         data = f.read()
         for memberdata in data:
@@ -129,3 +125,48 @@ if (os.path.isfile(upload_file)):
         b = 1
 else: print("Sorry, I cannot find that file. Make sure you typed in the path, name, and extension correctly!")
 
+#Downloading file from group specified 
+group_name = raw_input("What group do you want to download from? ")
+my_email = raw_input("What's your email? ")
+if (os.path.isfile(group_name+".txt")):
+    b = 0
+    with open(group_name+".txt", 'r') as f:
+        emails = [line.strip() for line in f]
+        for i in emails:
+            if my_email == i:
+                print("Thanks, you've been authenticated.")
+                b = 1
+    if b == 1:
+        file_name = raw_input("What file would you like to download? ")
+        path = "/"+group_name+"/"+file_name
+        fd1 = open(group_name+"private_key.pem", "r")
+        private_key = fd1.read() 
+        fd1.close()
+        rsakey = RSA.importKey(private_key)
+        rsakey = PKCS1_OAEP.new(rsakey)
+        if (os.path.isfile(group_name+"recv_key.txt")):
+            f = open(group_name+"recv_key.txt", 'r')
+            key = f.read()
+            f.close()
+            key = Fernet(key)
+            metadata, f = dbx.files_download(path)
+            final = open(file_name, 'wb')
+            final.write(key.decrypt(f.content))
+            final.close()  
+            print("File downloaded successfully.")  
+        else:
+            path = "/"+group_name+"/"+group_name+"encrypted_key.txt"
+            metadata, f = dbx.files_download(path)
+            new = open(group_name+"recv_key.txt", 'wb')
+            new.write(rsakey.decrypt(f.content))
+            new.close()
+            path = "/"+group_name+"/"+file_name
+            metadata, f = dbx.files_download(path)
+            final = open(file_name, 'wb')
+            final.write(rsakey.decrypt(f.content))
+            final.close()
+            print("File downloaded successfully.")  
+    else: 
+        print("You aren't a member of that group.")
+else:
+    print("Sorry, I cannot find that group name, did you type it in correctly?")
