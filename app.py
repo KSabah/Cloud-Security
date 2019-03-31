@@ -13,12 +13,12 @@ dbx = dropbox.Dropbox(TOKEN)
 add_to_group = raw_input("Do you want to add a member? ")
 add_to_group = add_to_group.lower()
 if add_to_group == "yes":
-    group_choice = raw_input("What group would you like to add a new member to? ")
-    if(os.path.isfile(group_choice+".txt")):
-        if ((os.path.isfile(group_choice+"private_key.pem")) and (os.path.isfile(group_choice+"public_key.pem")) and (os.path.isfile(group_choice+"key.txt"))):
+    group_name = raw_input("What group would you like to add a new member to? ")
+    if(os.path.isfile(group_name+".txt")):
+        if ((os.path.isfile(group_name+"private_key.pem")) and (os.path.isfile(group_name+"public_key.pem")) and (os.path.isfile(group_name+"key.txt"))):
             email = raw_input("Please enter a valid email: ")
             b = 0
-        with open(group_choice+".txt", 'r') as members:
+        with open(group_name+".txt", 'r') as members:
             emails = [line.strip() for line in members]
         for i in emails:
             if i == email:
@@ -27,30 +27,30 @@ if add_to_group == "yes":
                 b = 1
         if b == 0:
             for entry in dbx.files_list_folder("").entries:
-                if entry.name == group_choice:
+                if entry.name == group_name:
                     member_selector = dropbox.sharing.MemberSelector.email(email)
                     add_member =  dropbox.sharing.AddMember(member_selector)
                     members = [add_member] 
                     res = dbx.sharing_add_folder_member(entry.shared_folder_id, members,)
-            f = open(group_choice+".txt", "a")
+            f = open(group_name+".txt", "a")
             f.write(email+"\n")
             f.close()
             print("Thanks, they've been added to your group.")
     else:
         key = Fernet.generate_key()
-        fd = open(group_choice+"key.txt", "wb")
+        fd = open(group_name+"key.txt", "wb")
         fd.write(key) 
         fd.close()
         new_key = RSA.generate(4096, e=65537)
         private_key = new_key.exportKey("PEM")
         public_key = new_key.publickey().exportKey("PEM")
-        fd = open(group_choice+"private_key.pem", "wb")
+        fd = open(group_name+"private_key.pem", "wb")
         fd.write(private_key)
         fd.close()
-        fd = open(group_choice+"public_key.pem", "wb")
+        fd = open(group_name+"public_key.pem", "wb")
         fd.write(public_key)
         fd.close()
-        members = open(group_choice+".txt", "wb")
+        members = open(group_name+".txt", "wb")
         email = raw_input("Please enter a valid email ")
         members.write(email+"\n")
         members.close()
@@ -60,20 +60,71 @@ if add_to_group == "yes":
 remove = raw_input("Do you want to remove a member? ")
 remove = remove.lower()
 if remove == "yes":
-    group_choice = raw_input("Which group would you like to remove a member from? ")
-    if(os.path.isfile(group_choice+".txt")):
+    group_name = raw_input("Which group would you like to remove a member from? ")
+    if(os.path.isfile(group_name+".txt")):
         email = raw_input("Please enter their email: ")
-        with open(group_choice+".txt", "r") as f:
+        with open(group_name+".txt", "r") as f:
             lines = f.readlines()
-        with open(group_choice+".txt", "w") as f:
+        with open(group_name+".txt", "w") as f:
             for line in lines:
                 if line.strip("\n") != email:
                     f.write(line)
         for entry in dbx.files_list_folder("").entries:
-                if entry.name == group_choice:
+                if entry.name == group_name:
                     member_selector = dropbox.sharing.MemberSelector.email(email)
                     res = dbx.sharing_remove_folder_member(entry.shared_folder_id, member_selector, leave_a_copy = False)
         print("The member you have requested has been successfully removed.")
+        print("Re-encrypting files...")
+        f = open(group_name+"private_key.pem", "r")
+        old_private_key = f.read() 
+        f.close()
+        rsakey = RSA.importKey(old_private_key)
+        old_private_key = PKCS1_OAEP.new(rsakey)
+        f = open(group_name+"key.txt", "r")
+        old_key = f.read() 
+        f.close()
+        old_key = Fernet(old_key)
+
+        new_key = Fernet.generate_key()
+        f = open(group_name+"key.txt", "wb")
+        f.write(new_key) 
+        f.close()
+        n_key = RSA.generate(4096, e=65537)
+        new_private_key = n_key.exportKey("PEM")
+        new_public_key = n_key.publickey().exportKey("PEM")
+        f = open(group_name+"private_key.pem", "wb")
+        f.write(new_private_key)
+        f.close()
+        f = open(group_name+"public_key.pem", "wb")
+        f.write(new_public_key)
+        f.close()
+
+        response = dbx.files_list_folder("/"+group_name+"/")
+        for file in response.entries:
+            path = "/"+group_name+"/"+file.name
+            if file.name == group_name+"encrypted_key.txt":
+                dbx.files_delete(path)
+                rsa_key = RSA.importKey(new_public_key)
+                rsa_key = PKCS1_OAEP.new(rsa_key)
+                encrypted = rsa_key.encrypt(new_key)
+                f = open(group_name+"encrypted_key.txt", "wb")
+                f.write(encrypted)
+                f.close()
+                dbx.files_upload(encrypted, path)
+            else:
+                metadata, f = dbx.files_download(path)
+                old_data = open(file.name, 'wb')
+                old_data.write(old_key.decrypt(f.content))
+                old_data.close()
+                dbx.files_delete(path)  
+                with open(file.name, "rb") as f:
+                    data = f.read()
+                    for memberdata in data:
+                        fernet = Fernet(new_key)
+                        enc_data = fernet.encrypt(data)
+                f.close()
+                dbx.files_upload(enc_data, path)
+        print("Re-encryption successful.")
     else:
         print("You have no group members to remove.")
 
@@ -106,10 +157,10 @@ if (os.path.isfile(upload_file)):
         rsa_key = RSA.importKey(public_key)
         rsa_key = PKCS1_OAEP.new(rsa_key)
         encrypted = rsa_key.encrypt(key)
-        fd = open(group_choice+"encrypted_key.txt", "wb")
+        fd = open(group_name+"encrypted_key.txt", "wb")
         fd.write(encrypted)
         fd.close()
-        with open(group_choice+"key.txt", "rb") as f:
+        with open(group_name+"key.txt", "rb") as f:
             data = f.read()
         with open(group_name+".txt", 'r') as f:
             emails = [line.strip() for line in f]
@@ -120,7 +171,7 @@ if (os.path.isfile(upload_file)):
             dbx.sharing_add_folder_member(meta_data.shared_folder_id, [add_member])
         print('Folder created for group.')
         dbx.files_upload(enc_data, '/'+group_name+'/' + upload_file)
-        dbx.files_upload(encrypted, '/'+group_name+'/' + group_choice+"encrypted_key.txt")
+        dbx.files_upload(encrypted, '/'+group_name+'/' + group_name+"encrypted_key.txt")
         print("File uploaded")
         b = 1
 else: print("Sorry, I cannot find that file. Make sure you typed in the path, name, and extension correctly!")
