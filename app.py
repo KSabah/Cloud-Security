@@ -197,7 +197,7 @@ if (os.path.isfile(group_name+".txt")):
         rsakey = PKCS1_OAEP.new(rsakey)
         if (os.path.isfile(group_name+"recv_key.txt")):
             f = open(group_name+"recv_key.txt", 'r')
-            key = f.read()
+            key = rsakey.decrypt(f.read())
             f.close()
             key = Fernet(key)
             metadata, f = dbx.files_download(path)
@@ -209,13 +209,14 @@ if (os.path.isfile(group_name+".txt")):
             path = "/"+group_name+"/"+group_name+"encrypted_key.txt"
             metadata, f = dbx.files_download(path)
             new = open(group_name+"recv_key.txt", 'wb')
-            key = Fernet(rsakey.decrypt(f.content))
-            new.write(key)
+            new.write(f.content)
+            key = rsakey.decrypt(f.content)
             new.close()
+            fernet = Fernet(key)
             path = "/"+group_name+"/"+file_name
             metadata, f = dbx.files_download(path)
             final = open(file_name, 'wb')
-            final.write(key.decrypt(f.content))
+            final.write(fernet.decrypt(f.content))
             final.close()
             print("File downloaded successfully.")  
     else: 
