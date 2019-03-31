@@ -158,12 +158,13 @@ if (os.path.isfile(group_name+".txt")):
             path = "/"+group_name+"/"+group_name+"encrypted_key.txt"
             metadata, f = dbx.files_download(path)
             new = open(group_name+"recv_key.txt", 'wb')
-            new.write(rsakey.decrypt(f.content))
+            key = Fernet(rsakey.decrypt(f.content))
+            new.write(key)
             new.close()
             path = "/"+group_name+"/"+file_name
             metadata, f = dbx.files_download(path)
             final = open(file_name, 'wb')
-            final.write(rsakey.decrypt(f.content))
+            final.write(key.decrypt(f.content))
             final.close()
             print("File downloaded successfully.")  
     else: 
