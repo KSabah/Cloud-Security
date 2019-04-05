@@ -143,6 +143,11 @@ def UploadFile(group_name, upload_file):
         folders = dbx.files_list_folder("")
         for f in folders.entries:
             if f.name == group_name:
+                response = dbx.files_list_folder("/"+group_name+"/")
+                for file in response.entries:
+                    path = "/"+group_name+"/"+file.name
+                    if file.name == upload_file:
+                        dbx.files_delete(path)
                 dbx.files_upload(enc_data, '/'+group_name+'/' + upload_file)
                 print("File uploaded")
                 b = 1
