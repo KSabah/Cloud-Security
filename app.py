@@ -15,7 +15,7 @@ def AddMember(group_name):
         os.makedirs('Groups/')
     if(os.path.isfile("Groups/"+group_name+".txt")):
         if ((os.path.isfile(group_name+"private_key.pem")) and (os.path.isfile(group_name+"public_key.pem")) and (os.path.isfile(group_name+"key.txt"))):
-            email = raw_input("Please enter a valid email: ")
+            email = raw_input("Please enter a valid email for the new member: ")
             b = 0
         with open("Groups/"+group_name+".txt") as members:
             emails = [line.strip() for line in members]
@@ -36,6 +36,11 @@ def AddMember(group_name):
                     f.close()
                     print("Thanks, they've been added to your group.")
     else:
+        members = open("Groups/"+group_name+".txt", "wb")
+        your_email = raw_input("I need to create a new folder for your new group. What is your email? ")
+        members.write(your_email+"\n")
+        print("Thank you, one moment...")
+        members.close()
         key = Fernet.generate_key()
         fd = open(group_name+"key.txt", "wb")
         fd.write(key) 
@@ -49,8 +54,8 @@ def AddMember(group_name):
         fd = open(group_name+"public_key.pem", "wb")
         fd.write(public_key)
         fd.close()
-        members = open("Groups/"+group_name+".txt", "wb")
-        email = raw_input("Please enter a valid email ")
+        members = open("Groups/"+group_name+".txt", "a")
+        email = raw_input("Please enter a valid email for the new member: ")
         members.write(email+"\n")
         members.close()
         print("Thanks, they've been added to your group.")
