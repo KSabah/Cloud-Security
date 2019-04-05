@@ -14,58 +14,63 @@ add_to_group = raw_input("Do you want to add a member? ")
 add_to_group = add_to_group.lower()
 if add_to_group == "yes":
     group_name = raw_input("What group would you like to add a new member to? ")
-    if(os.path.isfile(group_name+".txt")):
-        if ((os.path.isfile(group_name+"private_key.pem")) and (os.path.isfile(group_name+"public_key.pem")) and (os.path.isfile(group_name+"key.txt"))):
-            email = raw_input("Please enter a valid email: ")
-            b = 0
-        with open(group_name+".txt", 'r') as members:
-            emails = [line.strip() for line in members]
-        for i in emails:
-            if i == email:
-                print("This person is already in your group")
-                members.close()
-                b = 1
-        if b == 0:
-            for entry in dbx.files_list_folder("").entries:
-                if entry.name == group_name:
-                    member_selector = dropbox.sharing.MemberSelector.email(email)
-                    add_member =  dropbox.sharing.AddMember(member_selector)
-                    members = [add_member] 
-                    res = dbx.sharing_add_folder_member(entry.shared_folder_id, members,)
-            f = open(group_name+".txt", "a")
-            f.write(email+"\n")
-            f.close()
-            print("Thanks, they've been added to your group.")
+    if not os.path.exists('Groups/'):
+        os.makedirs('Groups/')
     else:
-        key = Fernet.generate_key()
-        fd = open(group_name+"key.txt", "wb")
-        fd.write(key) 
-        fd.close()
-        new_key = RSA.generate(4096, e=65537)
-        private_key = new_key.exportKey("PEM")
-        public_key = new_key.publickey().exportKey("PEM")
-        fd = open(group_name+"private_key.pem", "wb")
-        fd.write(private_key)
-        fd.close()
-        fd = open(group_name+"public_key.pem", "wb")
-        fd.write(public_key)
-        fd.close()
-        members = open(group_name+".txt", "wb")
-        email = raw_input("Please enter a valid email ")
-        members.write(email+"\n")
-        members.close()
-        print("Thanks, they've been added to your group.")
+        if(os.path.isfile("Groups/"+group_name+".txt")):
+            if ((os.path.isfile(group_name+"private_key.pem")) and (os.path.isfile(group_name+"public_key.pem")) and (os.path.isfile(group_name+"key.txt"))):
+                email = raw_input("Please enter a valid email: ")
+                b = 0
+            with open("Groups/"+group_name+".txt") as members:
+                emails = [line.strip() for line in members]
+            for i in emails:
+                if i == email:
+                    print("This person is already in your group")
+                    members.close()
+                    b = 1
+            if b == 0:
+                for entry in dbx.files_list_folder("").entries:
+                    if entry.name == group_name:
+                        member_selector = dropbox.sharing.MemberSelector.email(email)
+                        add_member =  dropbox.sharing.AddMember(member_selector)
+                        members = [add_member] 
+                        res = dbx.sharing_add_folder_member(entry.shared_folder_id, members,)
+                f = open("Groups/"+group_name+".txt", "a")
+                f.write(email+"\n")
+                f.close()
+                print("Thanks, they've been added to your group.")
+        else:
+            key = Fernet.generate_key()
+            fd = open(group_name+"key.txt", "wb")
+            fd.write(key) 
+            fd.close()
+            new_key = RSA.generate(4096, e=65537)
+            private_key = new_key.exportKey("PEM")
+            public_key = new_key.publickey().exportKey("PEM")
+            fd = open(group_name+"private_key.pem", "wb")
+            fd.write(private_key)
+            fd.close()
+            fd = open(group_name+"public_key.pem", "wb")
+            fd.write(public_key)
+            fd.close()
+            members = open("Groups/"+group_name+".txt", "wb")
+            email = raw_input("Please enter a valid email ")
+            members.write(email+"\n")
+            members.close()
+            print("Thanks, they've been added to your group.")
+
+    
 
 #Removing from group
 remove = raw_input("Do you want to remove a member? ")
 remove = remove.lower()
 if remove == "yes":
     group_name = raw_input("Which group would you like to remove a member from? ")
-    if(os.path.isfile(group_name+".txt")):
+    if(os.path.isfile("Groups/"+group_name+".txt")):
         email = raw_input("Please enter their email: ")
-        with open(group_name+".txt", "r") as f:
+        with open("Groups/"+group_name+".txt", "r") as f:
             lines = f.readlines()
-        with open(group_name+".txt", "w") as f:
+        with open("Groups/"+group_name+".txt", "w") as f:
             for line in lines:
                 if line.strip("\n") != email:
                     f.write(line)
@@ -162,7 +167,7 @@ if (os.path.isfile(upload_file)):
         fd.close()
         with open(group_name+"key.txt", "rb") as f:
             data = f.read()
-        with open(group_name+".txt", 'r') as f:
+        with open("Groups/"+group_name+".txt", 'r') as f:
             emails = [line.strip() for line in f]
         for i in emails:
             member_select = dropbox.sharing.MemberSelector.email(i)
@@ -179,9 +184,9 @@ else: print("Sorry, I cannot find that file. Make sure you typed in the path, na
 #Downloading file from group specified 
 group_name = raw_input("What group do you want to download from? ")
 my_email = raw_input("What's your email? ")
-if (os.path.isfile(group_name+".txt")):
+if (os.path.isfile("Groups/"+group_name+".txt")):
     b = 0
-    with open(group_name+".txt", 'r') as f:
+    with open("Groups/"+group_name+".txt", 'r') as f:
         emails = [line.strip() for line in f]
         for i in emails:
             if my_email == i:
